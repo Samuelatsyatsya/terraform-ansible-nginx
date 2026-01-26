@@ -29,6 +29,9 @@ terraform.tfvars
 *.key
 *.ppk
 
+# SSH public keys
+*.pub
+
 # SSH related files
 .ssh/
 known_hosts
