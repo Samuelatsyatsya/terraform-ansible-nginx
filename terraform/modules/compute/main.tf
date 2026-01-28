@@ -10,6 +10,7 @@ resource "aws_instance" "this" {
     var.tags,
     {
       Name = "${var.project}-app"
+      Role = "web"
     }
   )
 }
