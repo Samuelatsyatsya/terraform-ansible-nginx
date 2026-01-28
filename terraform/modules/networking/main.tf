@@ -1,3 +1,4 @@
+# VPC
 resource "aws_vpc" "this" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
@@ -9,6 +10,7 @@ resource "aws_vpc" "this" {
   }
 }
 
+# Internet Gateway
 resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
 
@@ -18,6 +20,7 @@ resource "aws_internet_gateway" "this" {
   }
 }
 
+# Public Subnets
 resource "aws_subnet" "public" {
   for_each = toset(var.public_subnet_cidrs)
 
@@ -33,6 +36,7 @@ resource "aws_subnet" "public" {
   }
 }
 
+# Private Subnets
 resource "aws_subnet" "private" {
   for_each = toset(var.private_subnet_cidrs)
 
@@ -47,6 +51,7 @@ resource "aws_subnet" "private" {
   }
 }
 
+# Public Route Table
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.this.id
 
@@ -61,8 +66,52 @@ resource "aws_route_table" "public" {
   }
 }
 
+# Associate public subnets with public route table
 resource "aws_route_table_association" "public_subnets" {
   for_each       = aws_subnet.public
   subnet_id      = each.value.id
   route_table_id = aws_route_table.public.id
+}
+
+# Allocate Elastic IP for NAT
+resource "aws_eip" "nat" {
+
+  tags = {
+    Name    = "${var.project}-nat-eip"
+    Project = var.project
+  }
+}
+
+# NAT Gateway in the first public subnet
+resource "aws_nat_gateway" "this" {
+  allocation_id = aws_eip.nat.id
+  subnet_id = values(aws_subnet.public)[0].id
+
+
+  tags = {
+    Name    = "${var.project}-nat"
+    Project = var.project
+  }
+}
+
+# Private Route Table
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.this.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.this.id
+  }
+
+  tags = {
+    Name    = "${var.project}-private-rt"
+    Project = var.project
+  }
+}
+
+# Associate private subnets with private route table
+resource "aws_route_table_association" "private_subnets" {
+  for_each       = aws_subnet.private
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.private.id
 }
