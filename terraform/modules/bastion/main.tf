@@ -5,5 +5,10 @@ resource "aws_instance" "bastion" {
   key_name               = var.key_name
   subnet_id              = var.subnet_id
   vpc_security_group_ids      = var.security_group_ids
-  tags                   = merge(var.tags, { Name = "${var.project}-bastion" })
+  tags                   = merge(
+    var.tags, { 
+    Name = "${var.project}-bastion" 
+    Role = "bastion" 
+    }
+    )
 }
